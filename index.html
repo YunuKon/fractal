@@ -107,8 +107,11 @@ video{
 <video
 id="cam"
 autoplay
-playsinline
 muted
+playsinline
+webkit-playsinline
+x5-playsinline
+x-webkit-airplay="allow"
 ></video>
 
 <div id="hud">
@@ -219,7 +222,7 @@ void main(){
   float exposure=
   mix(
     0.35,
-    1.6,
+    1.7,
     1.0-lum
   );
 
@@ -228,7 +231,7 @@ void main(){
   cam=
   pow(
     cam,
-    vec3(1.35)
+    vec3(1.3)
   );
 
   float mono=
@@ -395,7 +398,7 @@ gl.enableVertexAttribArray(loc);
 
 gl.vertexAttribPointer(
   loc,
-  2,
+ 2,
   gl.FLOAT,
   false,
   0,
@@ -493,8 +496,22 @@ async function startCamera(){
   .getUserMedia({
 
     video:{
+
       facingMode:{
         ideal:'environment'
+      },
+
+      width:{
+        ideal:1920
+      },
+
+      height:{
+        ideal:1080
+      },
+
+      frameRate:{
+        ideal:30,
+        max:60
       }
     },
 
@@ -504,20 +521,21 @@ async function startCamera(){
   cam.srcObject=
   stream;
 
-  cam.setAttribute(
-    'playsinline',
-    true
-  );
+  await new Promise(r=>{
 
-  cam.muted=true;
-  cam.autoplay=true;
+    cam.onloadedmetadata=r;
+  });
 
   await cam.play();
 
-  await new Promise(r=>{
+  cam.requestVideoFrameCallback?.(
+    function update(){
 
-    cam.onloadeddata=r;
-  });
+      cam.requestVideoFrameCallback(
+        update
+      );
+    }
+  );
 
   tex=
   gl.createTexture();
@@ -525,6 +543,23 @@ async function startCamera(){
   gl.bindTexture(
     gl.TEXTURE_2D,
     tex
+  );
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    2,
+    2,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    new Uint8Array([
+      0,0,0,255,
+      0,0,0,255,
+      0,0,0,255,
+      0,0,0,255
+    ])
   );
 
   gl.texParameteri(
@@ -554,14 +589,13 @@ async function startCamera(){
   setInterval(()=>{
 
     if(
-      cam.readyState >= 2
+      cam.paused
     ){
 
-      cam.currentTime +=
-      0.000001;
+      cam.play();
     }
 
-  },33);
+  },1000);
 
   document
   .getElementById('start')
@@ -742,7 +776,8 @@ function loop(t){
 
   if(
     tex &&
-    cam.readyState >= 2
+    cam.readyState >=
+    cam.HAVE_CURRENT_DATA
   ){
 
     gl.activeTexture(
@@ -754,23 +789,20 @@ function loop(t){
       tex
     );
 
-    try{
+    gl.pixelStorei(
+      gl.UNPACK_FLIP_Y_WEBGL,
+      true
+    );
 
-      gl.pixelStorei(
-        gl.UNPACK_FLIP_Y_WEBGL,
-        true
-      );
-
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        cam
-      );
-
-    }catch(e){}
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0,
+      0,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      cam
+    );
 
     gl.uniform1i(
       U.bg,
@@ -791,151 +823,137 @@ function loop(t){
 
 requestAnimationFrame(loop);
 
-// drag
+// pinch zoom
 
 let drag=false;
 let lx=0;
 let ly=0;
 
 canvas.addEventListener(
+'touchstart',
+e=>{
 
-  'touchstart',
+  if(
+    e.touches.length===1
+  ){
 
-  e=>{
+    drag=true;
 
-    if(
-      e.touches.length===1
-    ){
+    lx=
+    e.touches[0]
+    .clientX;
 
-      drag=true;
-
-      lx=
-      e.touches[0]
-      .clientX;
-
-      ly=
-      e.touches[0]
-      .clientY;
-    }
-
-    if(
-      e.touches.length===2
-    ){
-
-      pinchDist=
-      distTouches(
-        e.touches
-      );
-
-      pinchZoom=
-      S.zoom;
-    }
-
-  },
-
-  {passive:true}
-);
-
-canvas.addEventListener(
-
-  'touchmove',
-
-  e=>{
-
-    if(
-      drag
-      &&
-      e.touches.length===1
-    ){
-
-      S.ctr.x-=
-
-      (
-        e.touches[0]
-        .clientX
-        -lx
-      )
-
-      /innerHeight
-
-      *S.zoom;
-
-      S.ctr.y+=
-
-      (
-        e.touches[0]
-        .clientY
-        -ly
-      )
-
-      /innerHeight
-
-      *S.zoom;
-
-      lx=
-      e.touches[0]
-      .clientX;
-
-      ly=
-      e.touches[0]
-      .clientY;
-    }
-
-    if(
-      e.touches.length===2
-    ){
-
-      const d=
-      distTouches(
-        e.touches
-      );
-
-      S.zoom=
-
-      pinchZoom
-      *
-      (
-        pinchDist/d
-      );
-
-      S.zoom=
-      Math.max(
-        0.18,
-        Math.min(
-          22,
-          S.zoom
-        )
-      );
-    }
-
-  },
-
-  {passive:true}
-);
-
-canvas.addEventListener(
-
-  'touchend',
-
-  ()=>{
-
-    drag=false;
+    ly=
+    e.touches[0]
+    .clientY;
   }
+
+  if(
+    e.touches.length===2
+  ){
+
+    pinchDist=
+    distTouches(
+      e.touches
+    );
+
+    pinchZoom=
+    S.zoom;
+  }
+
+},
+{passive:true}
+);
+
+canvas.addEventListener(
+'touchmove',
+e=>{
+
+  if(
+    drag
+    &&
+    e.touches.length===1
+  ){
+
+    S.ctr.x-=
+
+    (
+      e.touches[0]
+      .clientX-lx
+    )
+
+    /innerHeight
+
+    *S.zoom;
+
+    S.ctr.y+=
+
+    (
+      e.touches[0]
+      .clientY-ly
+    )
+
+    /innerHeight
+
+    *S.zoom;
+
+    lx=
+    e.touches[0]
+    .clientX;
+
+    ly=
+    e.touches[0]
+    .clientY;
+  }
+
+  if(
+    e.touches.length===2
+  ){
+
+    const d=
+    distTouches(
+      e.touches
+    );
+
+    S.zoom=
+
+    pinchZoom
+    *
+    (
+      pinchDist/d
+    );
+
+    S.zoom=
+    Math.max(
+      0.18,
+      Math.min(
+        22,
+        S.zoom
+      )
+    );
+  }
+
+},
+{passive:true}
+);
+
+canvas.addEventListener(
+'touchend',
+()=>{
+
+  drag=false;
+}
 );
 
 function distTouches(t){
 
   const dx=
-
-    t[0].clientX
-    -
-    t[1].clientX;
+  t[0].clientX-
+  t[1].clientX;
 
   const dy=
-
-    t[0].clientY
-    -
-    t[1].clientY;
+  t[0].clientY-
+  t[1].clientY;
 
   return Math.sqrt(
     dx*dx+dy*dy
@@ -945,7 +963,7 @@ function distTouches(t){
 let pinchDist=0;
 let pinchZoom=1;
 
-// save image
+// capture
 
 document
 .getElementById('capture')
