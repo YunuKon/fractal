@@ -27,7 +27,13 @@ canvas{
 }
 
 video{
-  display:none;
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  opacity:0;
+  pointer-events:none;
 }
 
 #hud{
@@ -169,12 +175,9 @@ precision highp float;
 
 uniform vec2 u_res;
 uniform float u_time;
-
 uniform vec2 u_c;
 uniform vec2 u_ctr;
-
 uniform float u_zoom;
-
 uniform sampler2D u_bg;
 
 vec2 cmul(vec2 a,vec2 b){
@@ -215,8 +218,8 @@ void main(){
 
   float exposure=
   mix(
-    0.25,
-    1.35,
+    0.35,
+    1.6,
     1.0-lum
   );
 
@@ -225,10 +228,10 @@ void main(){
   cam=
   pow(
     cam,
-    vec3(1.45)
+    vec3(1.35)
   );
 
-  float g=
+  float mono=
   dot(
     cam,
     vec3(.333)
@@ -236,9 +239,9 @@ void main(){
 
   cam=
   mix(
-    vec3(g),
+    vec3(mono),
     cam,
-    0.12
+    0.08
   );
 
   vec2 z=
@@ -254,10 +257,11 @@ void main(){
   );
 
   float glow=0.0;
+  float rings=0.0;
 
   vec2 p=z;
 
-  for(int i=0;i<180;i++){
+  for(int i=0;i<220;i++){
 
     p=
     cmul(p,p)
@@ -267,10 +271,21 @@ void main(){
     length(p);
 
     glow+=
-    0.005/
+    0.006/
     max(
       r,
       0.03
+    );
+
+    rings+=
+    exp(
+      -10.0*
+      abs(
+        sin(
+          r*5.0
+          -u_time*.0004
+        )
+      )
     );
 
     if(r>8.0)break;
@@ -279,23 +294,33 @@ void main(){
   glow=
   pow(
     glow,
-    1.35
+    1.28
   );
 
+  rings*=0.022;
+
   vec3 fractal=
-  vec3(glow*2.2);
+  vec3(glow*2.4)
+  +
+  vec3(rings);
 
   vec3 col=
 
-    cam*0.8
+    cam*0.76
     +
-    fractal*2.0;
+    fractal*2.4;
+
+  col+=
+  fractal*
+  smoothstep(
+    0.08,
+    1.2,
+    glow
+  )*1.8;
 
   col=
   col/
-  (col+vec3(.72));
-
-  col*=0.95;
+  (col+vec3(.7));
 
   gl_FragColor=
   vec4(col,1.);
@@ -479,6 +504,14 @@ async function startCamera(){
   cam.srcObject=
   stream;
 
+  cam.setAttribute(
+    'playsinline',
+    true
+  );
+
+  cam.muted=true;
+  cam.autoplay=true;
+
   await cam.play();
 
   await new Promise(r=>{
@@ -518,6 +551,18 @@ async function startCamera(){
     gl.CLAMP_TO_EDGE
   );
 
+  setInterval(()=>{
+
+    if(
+      cam.readyState >= 2
+    ){
+
+      cam.currentTime +=
+      0.000001;
+    }
+
+  },33);
+
   document
   .getElementById('start')
   .style.display='none';
@@ -526,6 +571,7 @@ async function startCamera(){
 document
 .getElementById('start')
 .onclick=()=>{
+
   startCamera();
 };
 
@@ -694,7 +740,10 @@ function loop(t){
     S.zoom
   );
 
-  if(tex){
+  if(
+    tex &&
+    cam.readyState >= 2
+  ){
 
     gl.activeTexture(
       gl.TEXTURE0
@@ -705,14 +754,23 @@ function loop(t){
       tex
     );
 
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      cam
-    );
+    try{
+
+      gl.pixelStorei(
+        gl.UNPACK_FLIP_Y_WEBGL,
+        true
+      );
+
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        cam
+      );
+
+    }catch(e){}
 
     gl.uniform1i(
       U.bg,
@@ -887,7 +945,7 @@ function distTouches(t){
 let pinchDist=0;
 let pinchZoom=1;
 
-// save to photo app
+// save image
 
 document
 .getElementById('capture')
@@ -909,9 +967,9 @@ document
         );
 
         a.download=
-        'shadow-fractal-'+
-        Date.now()+
-        '.png';
+        'shadow-fractal-'
+        +Date.now()
+        +'.png';
 
         a.click();
 
@@ -922,59 +980,6 @@ document
   });
 
 };
-
-// optional github archive webhook
-
-async function archiveToGit(blob){
-
-  // REPLACE THESE
-
-  const GITHUB_TOKEN='YOUR_TOKEN';
-  const REPO='username/repository';
-
-  const reader=
-  new FileReader();
-
-  reader.onload=
-  async()=>{
-
-    const base64=
-    reader.result
-    .split(',')[1];
-
-    await fetch(
-
-      'https://api.github.com/repos/'
-      +REPO+
-      '/contents/archive/'
-      +Date.now()
-      +'.png',
-
-      {
-
-        method:'PUT',
-
-        headers:{
-          'Authorization':
-          'token '+GITHUB_TOKEN,
-
-          'Content-Type':
-          'application/json'
-        },
-
-        body:JSON.stringify({
-
-          message:
-          'archive capture',
-
-          content:base64
-        })
-      }
-    );
-  };
-
-  reader.readAsDataURL(blob);
-}
 
 </script>
 </body>
