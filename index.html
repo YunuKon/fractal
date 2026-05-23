@@ -387,11 +387,33 @@ function distTouches(t){
 document.getElementById('capture').onclick = () => {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      canvas.toBlob(blob => {
+      canvas.toBlob(async blob => {
+        const filename = 'shadow-fractal-' + Date.now() + '.png';
+        const file = new File([blob], filename, { type: 'image/png' });
+
+        // ① Web Share API: iOS/Android 시스템 공유 시트 → "사진에 저장" 가능
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'Shadow Fractal'
+            });
+            return;
+          } catch (e) {
+            // 사용자가 취소하거나 share 실패 시 fallback으로 진행
+            if (e.name === 'AbortError') return; // 취소는 에러 아님
+          }
+        }
+
+        // ② fallback: PC / share 미지원 환경 - <a download>
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'shadow-fractal-' + Date.now() + '.png';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       }, 'image/png');
     });
   });
