@@ -101,7 +101,6 @@ video{
     <div class="title">SHADOW DATA</div>
     <div id="timeTxt"></div>
     <div id="dateTxt"></div>
-    <div id="lightTxt"></div>
     <div id="latTxt"></div>
     <div id="lngTxt"></div>
   </div>
@@ -277,11 +276,14 @@ async function startCamera(){
 document.getElementById('start').onclick = () => { startCamera(); };
 
 function coordsToC(lat, lng){
-  const latMicro = Math.floor((Math.abs(lat) % 1) * 1000000);
-  const lngMicro = Math.floor((Math.abs(lng) % 1) * 1000000);
+  // 도보 이동(~10m) ≈ 위도 0.00009도 변화
+  // k=1500 → 0.00009 * 1500 = 0.135 라디안 → c값 ~0.05 변화 (줄리아 집합에서 확연히 다른 형태)
+  const latF = ((lat % 1) + 1) % 1;   // 소수 부분 0~1
+  const lngF = ((lng % 1) + 1) % 1;
+  const k = 1500;
   return {
-    x: (Math.sin(latMicro*0.000071) + Math.cos(lngMicro*0.000061)) * .72,
-    y: (Math.sin(lngMicro*0.000256) - Math.cos(latMicro*0.000123)) * .72
+    x: (Math.sin(latF * k)        * 0.6 + Math.cos(lngF * k * 0.73)) * 0.55,
+    y: (Math.sin(lngF * k * 1.13) * 0.6 - Math.cos(latF * k * 0.91)) * 0.55
   };
 }
 
@@ -299,14 +301,12 @@ function updateHUD(){
     'TIME: ' + d.toLocaleTimeString('en-GB', { hour12: false });
   document.getElementById('dateTxt').textContent =
     'DATE: ' + d.toISOString().slice(0, 10);
-  document.getElementById('lightTxt').textContent =
-    'LIGHT: ' + (Math.sin(performance.now()*0.00008)*.5+.5).toFixed(3);
   document.getElementById('latTxt').textContent =
-    'LAT: ' + currentLat.toFixed(5);
+    'LAT: ' + currentLat.toFixed(7);
   document.getElementById('lngTxt').textContent =
-    'LNG: ' + currentLng.toFixed(5);
+    'LNG: ' + currentLng.toFixed(7);
   document.getElementById('cTxt').textContent =
-    'c = ' + S.c.x.toFixed(4) + '+' + S.c.y.toFixed(4) + 'i';
+    'c = ' + S.c.x.toFixed(5) + '+' + S.c.y.toFixed(5) + 'i';
   document.getElementById('zoomTxt').textContent =
     'ZOOM: ' + S.zoom.toFixed(2);
 }
@@ -388,32 +388,80 @@ function distTouches(t){
   return Math.sqrt(dx*dx + dy*dy);
 }
 
+// ── HUD를 canvas에 직접 렌더링해서 캡처에 포함 ────────────────
+function buildCaptureCanvas(){
+  const comp = document.createElement('canvas');
+  comp.width  = canvas.width;
+  comp.height = canvas.height;
+  const ctx = comp.getContext('2d');
+
+  // WebGL 결과 복사
+  ctx.drawImage(canvas, 0, 0);
+
+  // HUD 스타일
+  ctx.shadowColor = 'rgba(0,0,0,0.92)';
+  ctx.shadowBlur  = 9;
+  ctx.textBaseline = 'top';
+
+  const d = new Date();
+  const sections = [
+    { label: 'SHADOW DATA', rows: [
+      'TIME: ' + d.toLocaleTimeString('en-GB', { hour12: false }),
+      'DATE: ' + d.toISOString().slice(0, 10),
+      'LAT: '  + currentLat.toFixed(7),
+      'LNG: '  + currentLng.toFixed(7),
+    ]},
+    { label: 'FRACTAL ITERATION', rows: [
+      'c = ' + S.c.x.toFixed(5) + '+' + S.c.y.toFixed(5) + 'i',
+      'ZOOM: ' + S.zoom.toFixed(2),
+    ]},
+  ];
+
+  let y = 18;
+  const px = window.devicePixelRatio || 1;
+  // canvas 해상도는 CSS 픽셀 기준이므로 DPR 고려 없이 고정 폰트크기 사용
+  sections.forEach(sec => {
+    // 섹션 제목
+    ctx.font         = '11px monospace';
+    ctx.fillStyle    = 'rgba(255,255,255,0.42)';
+    ctx.fillText(sec.label, 18, y);
+    y += 17;
+    // 데이터 행
+    ctx.font      = '13px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    sec.rows.forEach(row => {
+      ctx.fillText(row, 18, y);
+      y += 20;
+    });
+    y += 14; // 섹션 간격
+  });
+
+  return comp;
+}
+
 // ── capture ─────────────────────────────────────────────────────
 document.getElementById('capture').onclick = () => {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      canvas.toBlob(async blob => {
+      const comp = buildCaptureCanvas();
+      comp.toBlob(async blob => {
         const filename = 'shadow-fractal-' + Date.now() + '.png';
         const file = new File([blob], filename, { type: 'image/png' });
 
         // ① Web Share API: iOS/Android 시스템 공유 시트 → "사진에 저장" 가능
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
-            await navigator.share({
-              files: [file],
-              title: 'Shadow Fractal'
-            });
+            await navigator.share({ files: [file], title: 'Shadow Fractal' });
             return;
           } catch (e) {
-            // 사용자가 취소하거나 share 실패 시 fallback으로 진행
-            if (e.name === 'AbortError') return; // 취소는 에러 아님
+            if (e.name === 'AbortError') return;
           }
         }
 
-        // ② fallback: PC / share 미지원 환경 - <a download>
+        // ② fallback: PC / share 미지원 환경
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
+        const a   = document.createElement('a');
+        a.href     = url;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
