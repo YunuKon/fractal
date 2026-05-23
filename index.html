@@ -228,6 +228,12 @@ addEventListener('resize', resize);
 const cam = document.getElementById('cam');
 let tex = null;
 
+// iOS Safari는 WebGL에 <video>를 직접 texImage2D로 전달하면
+// 프레임이 갱신되지 않는 버그가 있음.
+// 오프스크린 2D canvas를 중간 버퍼로 사용해 우회.
+const offscreen = document.createElement('canvas');
+const ctx2d     = offscreen.getContext('2d');
+
 async function startCamera(){
   const stream = await navigator.mediaDevices.getUserMedia({
     video: {
@@ -244,20 +250,18 @@ async function startCamera(){
   await new Promise(r => { cam.onloadedmetadata = r; });
   await cam.play();
 
+  // 오프스크린 캔버스를 실제 비디오 해상도로 맞춤
+  offscreen.width  = cam.videoWidth  || 1280;
+  offscreen.height = cam.videoHeight || 720;
+
   tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
-
-  // ─── 수정: 처음엔 1×1 픽셀 플레이스홀더 대신
-  //           2×2 고정이 아닌 실제 비디오 첫 프레임으로 바로 초기화 ───
-  // texSubImage2D는 기존 텍스처 크기 내에서만 동작하므로,
-  // 루프에서 texImage2D를 사용해 매 프레임 전체 재할당합니다.
   gl.texImage2D(
     gl.TEXTURE_2D, 0, gl.RGBA,
     1, 1, 0,
     gl.RGBA, gl.UNSIGNED_BYTE,
     new Uint8Array([0,0,0,255])
   );
-
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -315,27 +319,28 @@ function loop(t){
   gl.uniform1f(U.zoom, S.zoom);
 
   if(tex && cam.readyState >= cam.HAVE_CURRENT_DATA){
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    // iOS Safari에서 <video>를 WebGL에 직접 전달하면 프레임이 갱신되지 않음.
+    // 오프스크린 2D canvas에 먼저 drawImage → canvas를 WebGL에 전달하는 방식으로 우회.
+    const vw = cam.videoWidth;
+    const vh = cam.videoHeight;
+    if(vw > 0 && vh > 0){
+      // 해상도 변경 감지 시 캔버스 크기 재설정
+      if(offscreen.width !== vw || offscreen.height !== vh){
+        offscreen.width  = vw;
+        offscreen.height = vh;
+      }
+      ctx2d.drawImage(cam, 0, 0, vw, vh);
 
-    // ─── 핵심 수정 ───────────────────────────────────────────────
-    // 기존: texSubImage2D → 초기화 크기(2×2)와 비디오 해상도 불일치로
-    //       WebGL INVALID_VALUE 에러 발생, 매 프레임 업데이트 실패
-    //
-    // 수정: texImage2D → 매 프레임 텍스처 전체를 재할당하므로
-    //       비디오 해상도가 바뀌어도 항상 정상 업데이트
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      cam
-    );
-    // ─────────────────────────────────────────────────────────────
-
-    gl.uniform1i(U.bg, 0);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(
+        gl.TEXTURE_2D, 0,
+        gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
+        offscreen
+      );
+      gl.uniform1i(U.bg, 0);
+    }
   }
 
   updateHUD();
