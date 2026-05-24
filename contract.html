@@ -221,6 +221,274 @@ function clearSig(){
   document.getElementById('sigHint').style.display='block';
 }
 modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open');});
+
+async function saveAsImage(){
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = '저장 중...';
+  btn.classList.add('loading');
+  await new Promise(r => setTimeout(r, 60));
+
+  try {
+    const canvas = buildContractCanvas();
+    canvas.toBlob(async blob => {
+      const filename = 'shadow-contract-' + Date.now() + '.png';
+      const file = new File([blob], filename, { type:'image/png' });
+
+      if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+        try {
+          await navigator.share({files:[file], title:'Shadow Collector Contract'});
+          btn.textContent='이미지로 저장'; btn.classList.remove('loading'); return;
+        } catch(e){
+          if(e.name==='AbortError'){ btn.textContent='이미지로 저장'; btn.classList.remove('loading'); return; }
+        }
+      }
+      // PC fallback: new tab (long-press to save on mobile without share API)
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download=filename;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),2000);
+      btn.textContent='이미지로 저장'; btn.classList.remove('loading');
+    },'image/png');
+  } catch(err) {
+    console.error(err);
+    btn.textContent='이미지로 저장'; btn.classList.remove('loading');
+    alert('저장 중 오류가 발생했습니다.');
+  }
+}
+
+function buildContractCanvas(){
+  const agentName   = document.getElementById('agentName').value || '___________';
+  const startDate   = document.getElementById('startDate').value;
+  const signingDate = document.getElementById('signingDateTxt').textContent;
+  const sigImgEl    = document.getElementById('sigImg');
+  const hasSig      = sigImgEl && sigImgEl.style.display!=='none' && sigImgEl.src;
+  const sigName     = document.getElementById('sigNameDisplay').textContent;
+
+  const W=860, PAD=60, DPR=2;
+  const CW=W-PAD*2;
+  const INK='#1a1a1a', LIGHT='#555', FAINT='#aaa', RULE='#ccc', BGWARM='#fafaf8';
+  const MONO="'Courier New', Courier, monospace";
+  const SERIF="Georgia, 'Times New Roman', serif";
+  const SANS="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif";
+
+  // ── two-pass: measure then draw ──
+  function render(ctx, measure){
+    ctx.textBaseline='top';
+    let y=PAD;
+
+    function setFont(sz,fam,bold){
+      ctx.font=(bold?'bold ':'')+sz+'px '+fam;
+    }
+    function fill(color){ ctx.fillStyle=color; }
+
+    // wrap text → returns new y after drawing
+    function drawWrapped(text, x, startY, maxW, lineH, sz, fam, color, bold){
+      setFont(sz,fam,bold);
+      fill(color);
+      let line='', currY=startY;
+      for(let i=0;i<text.length;i++){
+        const test=line+text[i];
+        if(ctx.measureText(test).width>maxW && line.length>0){
+          if(!measure) ctx.fillText(line,x,currY);
+          line=text[i]; currY+=lineH;
+        } else { line=test; }
+      }
+      if(line){ if(!measure) ctx.fillText(line,x,currY); currY+=lineH; }
+      return currY;
+    }
+
+    function hRule(yPos, color=RULE){
+      if(!measure){
+        ctx.strokeStyle=color; ctx.lineWidth=0.8;
+        ctx.beginPath(); ctx.moveTo(PAD,yPos); ctx.lineTo(W-PAD,yPos); ctx.stroke();
+      }
+    }
+
+    function articleTitle(label, yPos){
+      setFont(10,MONO); fill(FAINT);
+      if(!measure){
+        ctx.fillText(label.toUpperCase(),PAD,yPos);
+        ctx.strokeStyle=RULE; ctx.lineWidth=0.6;
+        const tw=ctx.measureText(label.toUpperCase()).width;
+        ctx.beginPath(); ctx.moveTo(PAD+tw+10,yPos+5); ctx.lineTo(W-PAD,yPos+5); ctx.stroke();
+      }
+      return yPos+20;
+    }
+
+    // ── STAMP ROW ────────────────────────────
+    setFont(9,MONO); fill(FAINT);
+    if(!measure){
+      ctx.fillText('DOC NO. SC-0001',PAD,y);
+      ctx.fillText('SHADOW COLLECTOR AGENCY',PAD,y+15);
+      ctx.fillText('CLASSIFICATION: OPEN',PAD,y+30);
+      // circle stamp
+      ctx.save(); ctx.strokeStyle=RULE; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.arc(W-PAD-26,y+26,26,0,Math.PI*2); ctx.stroke();
+      ctx.textAlign='center'; setFont(7,MONO); fill(FAINT);
+      ctx.fillText('SHADOW',W-PAD-26,y+12);
+      ctx.fillText('CORP',W-PAD-26,y+22);
+      ctx.fillText('㊙',W-PAD-26,y+33);
+      ctx.restore();
+    }
+    y+=58; hRule(y); y+=28;
+
+    // ── TITLE ────────────────────────────────
+    if(!measure){
+      ctx.textAlign='center';
+      setFont(20,SERIF); fill(INK);
+      ctx.fillText('Shadow Collector Agent Contract',W/2,y);
+      y+=30;
+      setFont(13,SANS); fill(LIGHT);
+      ctx.fillText('그림자 수집 요원 계약서',W/2,y);
+      ctx.textAlign='left';
+    } else { y+=60; }
+    y+=38;
+
+    // ── PARTIES BOX ──────────────────────────
+    const partiesStr=`(주)그림자 수집기(이하 "회사"라 한다)와 ${agentName}(이하 "요원"이라 한다)는 다음과 같이 근로 계약을 체결한다.`;
+    const boxStartY=y;
+    y=drawWrapped(partiesStr,PAD+14,y+12,CW-28,22,12,SANS,LIGHT,false);
+    y+=12;
+    if(!measure){
+      ctx.fillStyle=BGWARM;
+      ctx.fillRect(PAD,boxStartY,CW,y-boxStartY);
+      ctx.strokeStyle=RULE; ctx.lineWidth=0.8;
+      ctx.strokeRect(PAD,boxStartY,CW,y-boxStartY);
+      // redraw text on top of box bg
+      drawWrapped(partiesStr,PAD+14,boxStartY+12,CW-28,22,12,SANS,LIGHT,false);
+    }
+    y+=24;
+
+    // ── ARTICLE 1 ────────────────────────────
+    y=articleTitle('제 1조 — 자기 돌봄 유지 의무',y)+4;
+    const art1=[
+      {t:'"요원"은 계약 기간 동안 자신의 생존과 정신적 안정 상태를 유지하기 위해 노력해야 한다.',indent:false},
+      {t:'"요원"은 아래 항목들을 가능한 범위 내에서 수행해야 한다.',indent:false},
+      {t:'어딘가 아프다면 병원을 방문해야 한다.',indent:true},
+      {t:'병원에 가는 것이 두렵다면, 누군가에게 함께 가달라고 요청해야 한다.',indent:true},
+      {t:'양치를 잘해야 한다.',indent:true},
+      {t:'가끔씩은 방을 청소해야 한다.',indent:true},
+      {t:'균형 잡힌 식사를 해야 한다.',indent:true},
+      {t:'충분한 수면을 취해야 한다.',indent:true},
+      {t:'외로워질 경우 밖으로 나와 이세계 정원으로 향하는 포탈을 찾아야 한다.',indent:true},
+      {t:'이따금씩은 해가 드는 시간에 산책을 해야 한다.',indent:true},
+      {t:'스스로를 상처 입히는 행동을 가능한 피해야 한다.',indent:true},
+      {t:'"요원"은 위 항목을 지키지 못하더라도 자신에게 인간으로서의 가치가 감소되는 것은 아니라는 사실을 인지해야 한다.',indent:false},
+      {t:'"요원"은 자신의 고통이 전적으로 자신의 잘못만으로 발생한 것이 아니라는 사실을 인지해야 한다.',indent:false},
+    ];
+    art1.forEach(item=>{
+      const x=item.indent?PAD+20:PAD;
+      const w=item.indent?CW-20:CW;
+      if(!measure && item.indent){
+        setFont(11,SANS); fill(FAINT);
+        ctx.fillText('–',PAD+6,y+2);
+      }
+      y=drawWrapped(item.t,x,y,w,21,12,SANS,item.indent?FAINT:LIGHT,false);
+      y+=3;
+    });
+    y+=16;
+
+    // ── ARTICLE 2 ────────────────────────────
+    y=articleTitle('제 2조 — 계약 기간',y)+4;
+    y=drawWrapped('본 계약의 유효 기간은 "회사"와 "요원"이 별도 서면 합의를 하지 않는 한,',PAD,y,CW,21,12,SANS,LIGHT,false);
+    y+=4;
+    if(!measure){
+      setFont(12,MONO); fill(INK);
+      ctx.fillText(startDate,PAD,y);
+      setFont(12,SANS); fill(LIGHT);
+      ctx.fillText(' 부터',PAD+ctx.measureText(startDate).width+2,y);
+    }
+    y+=24;
+    if(!measure){
+      setFont(12,MONO); fill(INK); ctx.font='bold 12px '+MONO;
+      ctx.fillText('2999년 12월 31일',PAD,y);
+      setFont(12,SANS); fill(LIGHT);
+      ctx.fillText(' 까지로 한다.',PAD+ctx.measureText('2999년 12월 31일').width+2,y);
+    }
+    y+=32;
+
+    // ── ARTICLE 3 ────────────────────────────
+    y=articleTitle('제 3조 — 근로 내용',y)+4;
+    const art3=[
+      '계약의 효력이 유지되는 동안 "요원"의 마음은 "이세계 정원"과 부분적으로 동기화된다.',
+      '"요원"은 자신의 감정을 통해 이세계 정원으로 이어지는 포탈을 감각할 수 있다.',
+      '포탈은 골목의 그림자, 물웅덩이에 비친 나뭇잎의 그림자, 새벽의 지하철역 입구의 그림자, 유리창의 반사된 자기 자신의 모습, 오래된 이불에 겹쳐진 그림자 등의 형태로 출현할 수 있다.',
+      '"요원"은 발견한 포탈을 주기적으로 기록 및 보고해야 한다.',
+    ];
+    art3.forEach(t=>{ y=drawWrapped(t,PAD,y,CW,21,12,SANS,LIGHT,false); y+=3; });
+    // report box
+    const rbStartY=y; y+=12;
+    const rbLines=['REPORT METHOD','인스타그램 DM  →  @lookingfor_shadows','','SUBMISSION','촬영 사진 / 포탈의 이름 / 발견 당시의 감정 혹은 짧은 설명'];
+    rbLines.forEach((l,i)=>{
+      if(!measure){ setFont(10,MONO); fill(i===0||i===3?INK:LIGHT); ctx.fillText(l,PAD+14,y); }
+      y+=18;
+    });
+    y+=12;
+    if(!measure){
+      ctx.fillStyle=BGWARM; ctx.fillRect(PAD,rbStartY,CW,y-rbStartY);
+      ctx.strokeStyle=RULE; ctx.lineWidth=0.7; ctx.strokeRect(PAD,rbStartY,CW,y-rbStartY);
+      // redraw text
+      let ry=rbStartY+12;
+      rbLines.forEach((l,i)=>{
+        setFont(10,MONO); fill(i===0||i===3?INK:LIGHT);
+        ctx.fillText(l,PAD+14,ry); ry+=18;
+      });
+    }
+    y+=24;
+
+    // ── ARTICLE 4 ────────────────────────────
+    y=articleTitle('제 4조 — 계약의 해지',y)+4;
+    y=drawWrapped('다음의 경우 계약은 일시적으로 비활성화될 수 있다.',PAD,y,CW,21,12,SANS,LIGHT,false); y+=3;
+    ['지나치게 행복한 상태가 지속될 경우','현실 세계에 대한 감각이 안정적으로 유지될 경우','더 이상 그림자를 바라보지 않게 되었을 경우'].forEach(t=>{
+      if(!measure){ setFont(11,SANS); fill(FAINT); ctx.fillText('–',PAD+6,y+2); }
+      y=drawWrapped(t,PAD+20,y,CW-20,21,12,SANS,FAINT,false); y+=3;
+    });
+    y=drawWrapped('단, 이미 해지된 계약이라 하더라도 특정 계절, 냄새, 음악, 혹은 꿈을 통해 재활성화될 수 있다.',PAD,y,CW,21,12,SANS,LIGHT,false); y+=3;
+    y=drawWrapped('"회사"는 요원의 기억 속에서 완전히 제거되지 않는다.',PAD,y,CW,21,12,SANS,LIGHT,false);
+    y+=32;
+
+    // ── SIGNING ──────────────────────────────
+    hRule(y); y+=28;
+    if(!measure){ setFont(12,SANS); fill(LIGHT); ctx.fillText(signingDate,PAD,y); }
+    y+=36;
+
+    // signature image
+    if(!measure){
+      setFont(9,MONO); fill(FAINT);
+      ctx.fillText('요원 / AGENT',PAD,y);
+    }
+    y+=16;
+    if(hasSig && !measure){
+      ctx.drawImage(sigImgEl,PAD,y,160,56);
+    }
+    y+=64;
+    if(!measure){
+      ctx.strokeStyle=INK; ctx.lineWidth=0.8;
+      ctx.beginPath(); ctx.moveTo(PAD,y); ctx.lineTo(PAD+200,y); ctx.stroke();
+      if(sigName){ setFont(11,MONO); fill(FAINT); ctx.fillText(sigName,PAD+4,y-18); }
+    }
+    y+=PAD;
+    return y;
+  }
+
+  // pass 1: measure
+  const tmpC=document.createElement('canvas');
+  tmpC.width=W; tmpC.height=100;
+  const tmpCtx=tmpC.getContext('2d');
+  const totalH=render(tmpCtx,true);
+
+  // pass 2: draw
+  const out=document.createElement('canvas');
+  out.width=W*DPR; out.height=totalH*DPR;
+  const ctx=out.getContext('2d');
+  ctx.scale(DPR,DPR);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,totalH);
+  render(ctx,false);
+
+  return out;
+}
 </script>
 </body>
 </html>
