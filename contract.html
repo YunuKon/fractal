@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>그림자 수집 요원 계약서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --ink:#1a1510;
+  --paper:#f5f0e8;
+  --paper2:#ede8dc;
+  --faded:#8a7e6b;
+  --accent:#3d2b1f;
+  --red:#8b2020;
+  --line:#c9bfa8;
+}
+
+html,body{
+  min-height:100%;
+  background:#2a2520;
+  font-family:'Nanum Myeongjo',serif;
+  color:var(--ink);
+}
+
+body{
+  padding:40px 16px 80px;
+}
+
+.page{
+  max-width:680px;
+  margin:0 auto;
+  background:var(--paper);
+  border-radius:2px;
+  box-shadow:
+    0 2px 8px rgba(0,0,0,.35),
+    inset 0 0 60px rgba(180,160,120,.08);
+  padding:52px 56px 60px;
+  position:relative;
+  overflow:hidden;
+}
+
+.page::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 27px,
+      rgba(180,160,120,.12) 27px,
+      rgba(180,160,120,.12) 28px
+    );
+  pointer-events:none;
+}
+
+.stamp-corner{
+  position:absolute;
+  top:22px;
+  right:28px;
+  width:68px;
+  height:68px;
+  border:2.5px solid rgba(139,32,32,.35);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-family:'Courier Prime',monospace;
+  font-size:7px;
+  letter-spacing:.12em;
+  color:rgba(139,32,32,.45);
+  line-height:1.5;
+  transform:rotate(-12deg);
+}
+
+.doc-id{
+  font-family:'Courier Prime',monospace;
+  font-size:9px;
+  letter-spacing:.25em;
+  color:var(--faded);
+  margin-bottom:28px;
+}
+
+.title-ko{
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:.05em;
+  line-height:1.4;
+  color:var(--accent);
+}
+
+.title-en{
+  font-family:'Courier Prime',monospace;
+  font-size:11px;
+  letter-spacing:.22em;
+  color:var(--faded);
+  margin-top:6px;
+  margin-bottom:32px;
+}
+
+.divider{
+  border:none;
+  border-top:1px solid var(--line);
+  margin:20px 0;
+}
+.divider.thick{
+  border-top-width:2px;
+  border-color:var(--accent);
+}
+
+.preamble{
+  font-size:13.5px;
+  line-height:2;
+  margin-bottom:28px;
+}
+
+.name-line{
+  display:inline-block;
+  border-bottom:1.5px solid var(--ink);
+  min-width:160px;
+  padding:0 4px;
+  font-family:'Courier Prime',monospace;
+  font-size:14px;
+  background:transparent;
+  outline:none;
+  color:var(--accent);
+  font-weight:700;
+}
+
+.article{
+  margin-bottom:28px;
+}
+
+.article-title{
+  font-family:'Courier Prime',monospace;
+  font-size:11.5px;
+  letter-spacing:.18em;
+  color:var(--accent);
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.article-body{
+  font-size:13px;
+  line-height:2;
+  color:var(--ink);
+}
+
+.article-body ol,
+.article-body ul{
+  padding-left:20px;
+}
+
+.article-body li{
+  margin-bottom:4px;
+}
+
+.date-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  font-size:13px;
+  line-height:2.2;
+  margin-bottom:6px;
+}
+
+.date-input{
+  border:none;
+  border-bottom:1px solid var(--ink);
+  background:transparent;
+  font-family:'Courier Prime',monospace;
+  font-size:13px;
+  color:var(--accent);
+  outline:none;
+  text-align:center;
+  width:52px;
+  padding:0 2px;
+}
+
+.date-input.wide{
+  width:70px;
+}
+
+.sig-section{
+  margin-top:36px;
+  padding-top:20px;
+  border-top:1px solid var(--line);
+}
+
+.sig-row{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+}
+
+.sig-label{
+  font-family:'Courier Prime',monospace;
+  font-size:11px;
+  letter-spacing:.15em;
+  color:var(--faded);
+  min-width:42px;
+}
+
+.sig-name-display{
+  font-family:'Courier Prime',monospace;
+  font-size:13px;
+  color:var(--accent);
+  font-weight:700;
+  min-width:120px;
+  border-bottom:1px solid var(--line);
+  padding:0 4px 2px;
+}
+
+.sig-canvas-wrap{
+  position:relative;
+  border-bottom:1px solid var(--ink);
+  width:220px;
+  height:52px;
+  cursor:pointer;
+  flex-shrink:0;
+}
+
+.sig-placeholder{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  padding-left:8px;
+  font-family:'Courier Prime',monospace;
+  font-size:10px;
+  letter-spacing:.12em;
+  color:var(--faded);
+  pointer-events:none;
+}
+
+.sig-thumb{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
+/* ── POPUP ────────────────────────── */
+.overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(20,15,10,.72);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.overlay.open{display:flex;}
+
+.popup{
+  background:var(--paper);
+  border-radius:4px;
+  width:100%;
+  max-width:460px;
+  padding:28px 24px 20px;
+  box-shadow:0 8px 40px rgba(0,0,0,.55);
+  position:relative;
+}
+
+.popup-title{
+  font-family:'Courier Prime',monospace;
+  font-size:10px;
+  letter-spacing:.22em;
+  color:var(--faded);
+  margin-bottom:14px;
+}
+
+.popup canvas{
+  width:100%;
+  height:220px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:2px;
+  display:block;
+  touch-action:none;
+  cursor:crosshair;
+}
+
+.popup-btns{
+  display:flex;
+  gap:10px;
+  margin-top:14px;
+  justify-content:flex-end;
+}
+
+.btn{
+  font-family:'Courier Prime',monospace;
+  font-size:11px;
+  letter-spacing:.15em;
+  padding:8px 18px;
+  border:1px solid var(--line);
+  background:transparent;
+  color:var(--accent);
+  border-radius:2px;
+  cursor:pointer;
+}
+.btn.primary{
+  background:var(--accent);
+  color:var(--paper);
+  border-color:var(--accent);
+}
+.btn:active{opacity:.7;}
+
+.print-btn{
+  display:block;
+  margin:40px auto 0;
+  font-family:'Courier Prime',monospace;
+  font-size:11px;
+  letter-spacing:.2em;
+  padding:12px 32px;
+  border:1.5px solid var(--accent);
+  background:transparent;
+  color:var(--accent);
+  border-radius:2px;
+  cursor:pointer;
+}
+.print-btn:active{opacity:.7;}
+
+.italic{font-style:italic;}
+.sub-note{
+  font-family:'Courier Prime',monospace;
+  font-size:10px;
+  color:var(--faded);
+  letter-spacing:.1em;
+  margin-top:4px;
+}
+
+@media(max-width:520px){
+  .page{padding:36px 24px 48px;}
+  .sig-canvas-wrap{width:160px;}
+}
+@media print{
+  body{background:none;padding:0;}
+  .page{box-shadow:none;padding:32px;}
+  .print-btn{display:none;}
+  .sig-canvas-wrap{border-bottom:1px solid #000;}
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="stamp-corner">SHADOW<br/>COLLECTOR<br/>AGENCY</div>
+
+  <div class="doc-id">DOC-SCA-<span id="docId">000000</span></div>
+
+  <div class="title-ko">그림자 수집 요원 계약서</div>
+  <div class="title-en">SHADOW COLLECTOR AGENT CONTRACT</div>
+
+  <hr class="divider thick"/>
+
+  <p class="preamble">
+    (주)그림자 수집기(이하 "회사"라 한다)와
+    <input
+      id="agentName"
+      class="name-line"
+      type="text"
+      placeholder="요원 이름 입력"
+      autocomplete="off"
+      spellcheck="false"
+      maxlength="20"
+    />(이하 "요원"이라 한다)는 다음과 같이 근로 계약을 체결한다.
+  </p>
+
+  <div class="article">
+    <div class="article-title">제 1조 — 자기 돌봄 유지 의무</div>
+    <div class="article-body">
+      <ol>
+        <li>"요원"은 계약 기간 동안 자신의 생존과 정신적 안정 상태를 유지하기 위해 노력해야 한다.</li>
+        <li>"요원"은 아래 항목들을 가능한 범위 내에서 수행해야 한다.
+          <ul style="margin-top:6px;">
+            <li>어딘가 아프다면 병원을 방문해야 한다.</li>
+            <li>병원에 가는 것이 두렵다면, 누군가에게 함께 가달라고 요청해야 한다.</li>
+            <li>양치를 잘해야 한다.</li>
+            <li>가끔씩은 방을 청소해야 한다.</li>
+            <li>균형 잡힌 식사를 해야 한다.</li>
+            <li>충분한 수면을 취해야 한다.</li>
+            <li>외로워질 경우 밖으로 나와 이세계 정원으로 향하는 포탈을 찾아야 한다.</li>
+            <li>이따금씩은 해가 드는 시간에 산책을 해야 한다.</li>
+            <li>스스로를 상처 입히는 행동을 가능한 피해야 한다.</li>
+          </ul>
+        </li>
+        <li>"요원"은 위 항목을 지키지 못하더라도 자신에게 인간으로서의 가치가 감소되는 것은 아니라는 사실을 인지해야 한다.</li>
+        <li>"요원"은 자신의 고통이 전적으로 자신의 잘못만으로 발생한 것이 아니라는 사실을 인지해야 한다.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="article">
+    <div class="article-title">제 2조 — 계약 기간</div>
+    <div class="article-body">
+      <p style="margin-bottom:8px;">본 계약의 유효 기간은 "회사"와 "요원"이 별도 서면 합의를 하지 않는 한,</p>
+      <div class="date-row">
+        <input class="date-input wide" id="s_y" maxlength="4" placeholder="년"/>년
+        <input class="date-input" id="s_m" maxlength="2" placeholder="월"/>월
+        <input class="date-input" id="s_d" maxlength="2" placeholder="일"/>일 부터
+      </div>
+      <div class="date-row">
+        <input class="date-input wide" id="e_y" maxlength="4" placeholder="년"/>년
+        <input class="date-input" id="e_m" maxlength="2" placeholder="월"/>월
+        <input class="date-input" id="e_d" maxlength="2" placeholder="일"/>일 까지로 한다.
+      </div>
+      <p class="sub-note" style="margin-top:10px;">※ 제 4조에 따라 계약은 비활성화 후 재활성화될 수 있다.</p>
+    </div>
+  </div>
+
+  <div class="article">
+    <div class="article-title">제 3조 — 근로 내용</div>
+    <div class="article-body">
+      <ol>
+        <li>계약의 효력이 유지되는 동안 "요원"의 마음은 "이세계 정원"과 부분적으로 동기화된다.</li>
+        <li>"요원"은 자신의 감정을 통해 이세계 정원으로 이어지는 포탈을 감각할 수 있다.</li>
+        <li>포탈은 골목의 그림자, 물웅덩이에 비친 나뭇잎의 그림자, 새벽의 지하철역 입구의 그림자, 유리창의 반사된 자기 자신의 모습, 오래된 이불에 겹쳐진 그림자 등의 형태로 출현할 수 있다.</li>
+        <li>"요원"은 발견한 포탈을 주기적으로 기록 및 보고해야 한다.
+          <div style="margin-top:8px;padding:12px 16px;background:var(--paper2);border-left:2px solid var(--line);font-size:12px;line-height:1.9;">
+            <b>보고 방법</b> — 인스타그램 DM : @lookingfor_shadows<br/>
+            <b>제출 항목</b> — 촬영 사진 / 포탈의 이름 / 발견 당시의 감정 혹은 짧은 설명
+          </div>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="article">
+    <div class="article-title">제 4조 — 계약의 해지</div>
+    <div class="article-body">
+      <ol>
+        <li>다음의 경우 계약은 일시적으로 비활성화될 수 있다.
+          <ul style="margin-top:6px;">
+            <li>지나치게 행복한 상태가 지속될 경우</li>
+            <li>현실 세계에 대한 감각이 안정적으로 유지될 경우</li>
+            <li>더 이상 그림자를 바라보지 않게 되었을 경우</li>
+          </ul>
+        </li>
+        <li>단, 이미 해지된 계약이라 하더라도 특정 계절, 냄새, 음악, 혹은 꿈을 통해 재활성화될 수 있다.</li>
+        <li>"회사"는 요원의 기억 속에서 완전히 제거되지 않는다.</li>
+      </ol>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <div class="sig-section">
+    <div class="date-row" style="margin-bottom:24px;font-size:13px;">
+      <input class="date-input wide" id="c_y" maxlength="4"/>년
+      <input class="date-input" id="c_m" maxlength="2"/>월
+      <input class="date-input" id="c_d" maxlength="2"/>일
+    </div>
+
+    <div class="sig-row">
+      <span class="sig-label">요원</span>
+      <span class="sig-name-display" id="sigNameDisplay">&nbsp;</span>
+      <div class="sig-canvas-wrap" id="sigWrap" title="탭하여 서명하기">
+        <span class="sig-placeholder" id="sigPlaceholder">TAP TO SIGN ✦</span>
+        <img id="sigPreview" class="sig-thumb" style="display:none;" alt="서명"/>
+      </div>
+    </div>
+  </div>
+
+  <button class="print-btn" onclick="window.print()">▤ 인쇄 / 저장</button>
+</div>
+
+<!-- SIGNATURE POPUP -->
+<div class="overlay" id="sigOverlay">
+  <div class="popup">
+    <div class="popup-title">AGENT SIGNATURE — 손가락 또는 마우스로 서명하세요</div>
+    <canvas id="sigPad" width="800" height="320"></canvas>
+    <div class="popup-btns">
+      <button class="btn" id="clearBtn">초기화</button>
+      <button class="btn" onclick="document.getElementById('sigOverlay').classList.remove('open')">취소</button>
+      <button class="btn primary" id="confirmBtn">서명 완료</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── doc id ── */
+document.getElementById('docId').textContent =
+  Math.floor(100000 + Math.random()*900000);
+
+/* ── auto-fill today ── */
+const now = new Date();
+const pad = n => String(n).padStart(2,'0');
+document.getElementById('s_y').value = now.getFullYear();
+document.getElementById('s_m').value = pad(now.getMonth()+1);
+document.getElementById('s_d').value = pad(now.getDate());
+document.getElementById('c_y').value = now.getFullYear();
+document.getElementById('c_m').value = pad(now.getMonth()+1);
+document.getElementById('c_d').value = pad(now.getDate());
+
+/* ── mirror agent name → sig row ── */
+const agentInput = document.getElementById('agentName');
+const sigNameDisplay = document.getElementById('sigNameDisplay');
+agentInput.addEventListener('input', () => {
+  sigNameDisplay.textContent = agentInput.value || '\u00a0';
+});
+
+/* ── signature pad ── */
+const overlay   = document.getElementById('sigOverlay');
+const padCanvas = document.getElementById('sigPad');
+const padCtx    = padCanvas.getContext('2d');
+const sigWrap   = document.getElementById('sigWrap');
+const sigPreview= document.getElementById('sigPreview');
+const sigPlaceholder = document.getElementById('sigPlaceholder');
+
+let drawing = false;
+let hasStroke = false;
+
+function getPos(e){
+  const r = padCanvas.getBoundingClientRect();
+  const scaleX = padCanvas.width  / r.width;
+  const scaleY = padCanvas.height / r.height;
+  if(e.touches){
+    return {
+      x:(e.touches[0].clientX - r.left)*scaleX,
+      y:(e.touches[0].clientY - r.top )*scaleY
+    };
+  }
+  return {x:(e.clientX-r.left)*scaleX, y:(e.clientY-r.top)*scaleY};
+}
+
+function startDraw(e){
+  e.preventDefault();
+  drawing = true;
+  hasStroke = true;
+  padCtx.beginPath();
+  const p = getPos(e);
+  padCtx.moveTo(p.x, p.y);
+}
+
+function draw(e){
+  if(!drawing) return;
+  e.preventDefault();
+  const p = getPos(e);
+  padCtx.strokeStyle = '#1a1510';
+  padCtx.lineWidth   = 2.5;
+  padCtx.lineCap     = 'round';
+  padCtx.lineJoin    = 'round';
+  padCtx.lineTo(p.x, p.y);
+  padCtx.stroke();
+  padCtx.beginPath();
+  padCtx.moveTo(p.x, p.y);
+}
+
+function endDraw(){ drawing = false; }
+
+padCanvas.addEventListener('mousedown',  startDraw);
+padCanvas.addEventListener('mousemove',  draw);
+padCanvas.addEventListener('mouseup',    endDraw);
+padCanvas.addEventListener('mouseleave', endDraw);
+padCanvas.addEventListener('touchstart', startDraw, {passive:false});
+padCanvas.addEventListener('touchmove',  draw,      {passive:false});
+padCanvas.addEventListener('touchend',   endDraw);
+
+document.getElementById('clearBtn').onclick = () => {
+  padCtx.clearRect(0,0,padCanvas.width,padCanvas.height);
+  hasStroke = false;
+};
+
+document.getElementById('confirmBtn').onclick = () => {
+  if(!hasStroke){ overlay.classList.remove('open'); return; }
+  const dataURL = padCanvas.toDataURL('image/png');
+  sigPreview.src = dataURL;
+  sigPreview.style.display = 'block';
+  sigPlaceholder.style.display = 'none';
+  overlay.classList.remove('open');
+};
+
+sigWrap.addEventListener('click', () => {
+  padCtx.clearRect(0,0,padCanvas.width,padCanvas.height);
+  hasStroke = false;
+  overlay.classList.add('open');
+});
+
+overlay.addEventListener('click', e => {
+  if(e.target === overlay) overlay.classList.remove('open');
+});
+</script>
+</body>
+</html>
