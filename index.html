@@ -2,475 +2,225 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport"
-  content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>SHADOW FRACTAL CAMERA</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>그림자 수집 요원 계약서</title>
 <style>
-html,body{
-  margin:0;
-  width:100%;
-  height:100%;
-  overflow:hidden;
-  background:#000;
-  touch-action:none;
-  font-family:monospace;
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=IM+Fell+English:ital@0;1&family=Courier+Prime:wght@400;700&display=swap');
+
+:root{
+  --ink:#1a1a1a;--ink-light:#444;--ink-faint:#999;
+  --rule:#bbb;--paper:#fff;--paper-warm:#fafaf8;
 }
-canvas{
-  position:fixed;
-  inset:0;
-  width:100%;
-  height:100%;
-}
-video{
-  position:fixed;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  opacity:0;
-  pointer-events:none;
-}
-#hud{
-  position:fixed;
-  top:18px;
-  left:18px;
-  color:#fff;
-  font-size:12px;
-  line-height:1.6;
-  letter-spacing:.12em;
-  z-index:90;
-  opacity:.82;
-  text-shadow:0 0 8px rgba(0,0,0,.9);
-  pointer-events:none;
-}
-#hud .group{
-  margin-bottom:22px;
-}
-#hud .title{
-  margin-bottom:10px;
-  opacity:.45;
-  font-size:10px;
-}
-#capture{
-  position:fixed;
-  bottom:28px;
-  left:50%;
-  transform:translateX(-50%);
-  width:74px;
-  height:74px;
-  border-radius:50%;
-  border:2px solid rgba(255,255,255,.82);
-  background:rgba(255,255,255,.08);
-  backdrop-filter:blur(12px);
-  z-index:999;
-}
-#capture:active{
-  transform:translateX(-50%) scale(.94);
-}
-#start{
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#000;
-  color:#fff;
-  z-index:9999;
-  font-size:14px;
-  letter-spacing:.12em;
-}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#e8e8e6;min-height:100%;font-family:'Noto Serif KR',serif;color:var(--ink);}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.35;}
+.page-wrap{max-width:760px;margin:48px auto 80px;padding:0 20px;position:relative;z-index:1;}
+.doc{background:var(--paper);padding:64px 72px 72px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 4px 24px rgba(0,0,0,.09),0 24px 64px rgba(0,0,0,.07);position:relative;}
+.stamp-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:48px;border-bottom:1px solid var(--rule);padding-bottom:28px;}
+.stamp-left{font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:.2em;color:var(--ink-faint);line-height:1.8;}
+.stamp-mark{width:52px;height:52px;border:1.5px solid var(--rule);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Courier Prime',monospace;font-size:7px;letter-spacing:.08em;color:var(--ink-faint);text-align:center;line-height:1.4;}
+.doc-title{text-align:center;margin-bottom:40px;}
+.doc-title h1{font-family:'IM Fell English',serif;font-size:22px;font-weight:400;letter-spacing:.04em;color:var(--ink);margin-bottom:6px;}
+.doc-title h2{font-size:14px;font-weight:300;letter-spacing:.18em;color:var(--ink-light);}
+.parties{font-size:12.5px;line-height:2;color:var(--ink-light);margin-bottom:36px;padding:18px 20px;border:1px solid var(--rule);background:var(--paper-warm);}
+.parties strong{color:var(--ink);}
+.name-input{display:inline-block;border:none;border-bottom:1px solid var(--ink);background:transparent;font-family:'Noto Serif KR',serif;font-size:13px;color:var(--ink);width:160px;padding:0 4px 1px;outline:none;text-align:center;}
+.name-input::placeholder{color:#ccc;}
+.article{margin-bottom:30px;}
+.article-title{font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+.article-title::after{content:'';flex:1;height:1px;background:var(--rule);}
+.article-body{font-size:12.5px;line-height:2.1;color:var(--ink-light);}
+.article-body p{margin-bottom:6px;}
+.article-body .indent{padding-left:22px;position:relative;}
+.article-body .indent::before{content:'–';position:absolute;left:6px;color:var(--ink-faint);}
+.article-body em{font-style:normal;color:var(--ink);font-weight:600;}
+.period-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-light);margin:8px 0;}
+.date-input{border:none;border-bottom:1px solid var(--ink);background:transparent;font-family:'Courier Prime',monospace;font-size:12px;color:var(--ink);width:130px;padding:0 4px 1px;outline:none;text-align:center;}
+.date-fixed{font-family:'Courier Prime',monospace;font-size:12px;color:var(--ink);font-weight:700;border-bottom:1px solid var(--ink);padding:0 4px;}
+.report-box{background:var(--paper-warm);border:1px solid var(--rule);padding:14px 18px;margin-top:8px;font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:.05em;line-height:2;color:var(--ink-light);}
+.report-box a{color:var(--ink);}
+.signing{margin-top:48px;border-top:1px solid var(--rule);padding-top:32px;}
+.signing-date{font-size:12.5px;color:var(--ink-light);margin-bottom:36px;}
+.signing-row{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+.signing-label{font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:.18em;color:var(--ink-faint);margin-bottom:6px;}
+.sig-preview{width:200px;height:56px;border-bottom:1px solid var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;}
+.sig-preview img{max-width:100%;max-height:100%;object-fit:contain;}
+.sig-hint{font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:.12em;color:#ccc;}
+.sig-area{border-bottom:1px solid var(--ink);width:180px;height:28px;display:flex;align-items:flex-end;padding-bottom:3px;}
+.actions{margin-top:40px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.btn{font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink);background:transparent;border:1px solid var(--ink);padding:11px 24px;cursor:pointer;transition:all .18s;}
+.btn:hover{background:var(--ink);color:#fff;}
+.btn.primary{background:var(--ink);color:#fff;}
+.btn.primary:hover{background:#444;}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);z-index:1000;align-items:center;justify-content:center;}
+.modal-backdrop.open{display:flex;}
+.modal{background:var(--paper);padding:36px 32px 28px;max-width:420px;width:calc(100% - 40px);box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-title{font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:.24em;color:var(--ink-faint);margin-bottom:20px;}
+#sig-canvas{display:block;width:100%;height:160px;border:1px solid var(--rule);background:var(--paper-warm);cursor:crosshair;touch-action:none;}
+.modal-actions{display:flex;gap:8px;margin-top:16px;}
+@media print{body{background:#fff;}.actions,.modal-backdrop{display:none!important;}.doc{box-shadow:none;padding:0;}.page-wrap{margin:0;padding:0;}input{border-bottom-color:#aaa!important;}}
+@media(max-width:600px){.doc{padding:36px 24px 48px;}.stamp-row{flex-direction:column;gap:16px;}}
 </style>
 </head>
 <body>
+<div class="page-wrap">
+  <div class="doc">
+    <div class="stamp-row">
+      <div class="stamp-left">DOC NO. SC-0001<br>SHADOW COLLECTOR AGENCY<br>CLASSIFICATION: OPEN</div>
+      <div class="stamp-mark">SHADOW<br>CORP<br>㊙</div>
+    </div>
+    <div class="doc-title">
+      <h1>Shadow Collector Agent Contract</h1>
+      <h2>그림자 수집 요원 계약서</h2>
+    </div>
+    <div class="parties">
+      <strong>(주)그림자 수집기</strong>(이하 "회사"라 한다)와&nbsp;
+      <input class="name-input" id="agentName" type="text" placeholder="이름을 입력하세요" maxlength="20"/>
+      (이하 "요원"이라 한다)는 다음과 같이 근로 계약을 체결한다.
+    </div>
 
-<div id="start">TAP TO START CAMERA</div>
+    <div class="article">
+      <div class="article-title">제 1조 — 자기 돌봄 유지 의무</div>
+      <div class="article-body">
+        <p>"요원"은 계약 기간 동안 자신의 생존과 정신적 안정 상태를 유지하기 위해 노력해야 한다.</p>
+        <p>"요원"은 아래 항목들을 가능한 범위 내에서 수행해야 한다.</p>
+        <p class="indent">어딘가 아프다면 병원을 방문해야 한다.</p>
+        <p class="indent">병원에 가는 것이 두렵다면, 누군가에게 함께 가달라고 요청해야 한다.</p>
+        <p class="indent">양치를 잘해야 한다.</p>
+        <p class="indent">가끔씩은 방을 청소해야 한다.</p>
+        <p class="indent">균형 잡힌 식사를 해야 한다.</p>
+        <p class="indent">충분한 수면을 취해야 한다.</p>
+        <p class="indent">외로워질 경우 밖으로 나와 이세계 정원으로 향하는 포탈을 찾아야 한다.</p>
+        <p class="indent">이따금씩은 해가 드는 시간에 산책을 해야 한다.</p>
+        <p class="indent">스스로를 상처 입히는 행동을 가능한 피해야 한다.</p>
+        <p>"요원"은 위 항목을 지키지 못하더라도 자신에게 <em>인간으로서의 가치가 감소되는 것은 아니라는</em> 사실을 인지해야 한다.</p>
+        <p>"요원"은 자신의 고통이 <em>전적으로 자신의 잘못만으로 발생한 것이 아니라는</em> 사실을 인지해야 한다.</p>
+      </div>
+    </div>
 
-<canvas id="gl"></canvas>
-<video
-  id="cam"
-  autoplay
-  muted
-  playsinline
-  webkit-playsinline
-  x5-playsinline
-  x-webkit-airplay="allow"
-></video>
+    <div class="article">
+      <div class="article-title">제 2조 — 계약 기간</div>
+      <div class="article-body">
+        <p>본 계약의 유효 기간은 "회사"와 "요원"이 별도 서면 합의를 하지 않는 한,</p>
+        <div class="period-row"><input class="date-input" id="startDate" type="text" readonly/>부터</div>
+        <div class="period-row"><span class="date-fixed">2999년 12월 31일</span>까지로 한다.</div>
+      </div>
+    </div>
 
-<div id="hud">
-  <div class="group">
-    <div class="title">SHADOW DATA</div>
-    <div id="timeTxt"></div>
-    <div id="dateTxt"></div>
-    <div id="latTxt"></div>
-    <div id="lngTxt"></div>
-  </div>
-  <div class="group">
-    <div class="title">FRACTAL ITERATION</div>
-    <div id="cTxt"></div>
-    <div id="zoomTxt"></div>
+    <div class="article">
+      <div class="article-title">제 3조 — 근로 내용</div>
+      <div class="article-body">
+        <p>계약의 효력이 유지되는 동안 "요원"의 마음은 <em>"이세계 정원"</em>과 부분적으로 동기화된다.</p>
+        <p>"요원"은 자신의 감정을 통해 이세계 정원으로 이어지는 포탈을 감각할 수 있다.</p>
+        <p>포탈은 골목의 그림자, 물웅덩이에 비친 나뭇잎의 그림자, 새벽의 지하철역 입구의 그림자, 유리창의 반사된 자기 자신의 모습, 오래된 이불에 겹쳐진 그림자 등의 형태로 출현할 수 있다.</p>
+        <p>"요원"은 발견한 포탈을 주기적으로 기록 및 보고해야 한다.</p>
+        <div class="report-box">
+          REPORT METHOD<br>
+          인스타그램 DM &nbsp;→&nbsp; <a href="https://instagram.com/lookingfor_shadows" target="_blank">@lookingfor_shadows</a><br><br>
+          SUBMISSION<br>
+          촬영 사진 / 포탈의 이름 / 발견 당시의 감정 혹은 짧은 설명
+        </div>
+      </div>
+    </div>
+
+    <div class="article">
+      <div class="article-title">제 4조 — 계약의 해지</div>
+      <div class="article-body">
+        <p>다음의 경우 계약은 일시적으로 비활성화될 수 있다.</p>
+        <p class="indent">지나치게 행복한 상태가 지속될 경우</p>
+        <p class="indent">현실 세계에 대한 감각이 안정적으로 유지될 경우</p>
+        <p class="indent">더 이상 그림자를 바라보지 않게 되었을 경우</p>
+        <p>단, 이미 해지된 계약이라 하더라도 특정 계절, 냄새, 음악, 혹은 꿈을 통해 <em>재활성화될 수 있다.</em></p>
+        <p>"회사"는 요원의 기억 속에서 <em>완전히 제거되지 않는다.</em></p>
+      </div>
+    </div>
+
+    <div class="signing">
+      <div class="signing-date" id="signingDateTxt"></div>
+      <div class="signing-row">
+        <div>
+          <div class="signing-label">요원 / AGENT</div>
+          <div class="sig-preview" id="sigPreview" onclick="openSigModal()" title="클릭하여 서명">
+            <img id="sigImg" src="" alt="" style="display:none"/>
+            <span class="sig-hint" id="sigHint">TAP TO SIGN</span>
+          </div>
+        </div>
+        <div style="padding-bottom:6px;">
+          <div class="sig-area">
+            <span style="font-family:'Courier Prime',monospace;font-size:11px;color:#aaa;letter-spacing:.08em;" id="sigNameDisplay"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" onclick="clearSig()">서명 지우기</button>
+      <button class="btn primary" onclick="window.print()">인쇄 / 저장</button>
+    </div>
   </div>
 </div>
 
-<button id="capture"></button>
+<!-- SIGNATURE MODAL -->
+<div class="modal-backdrop" id="sigModal">
+  <div class="modal">
+    <div class="modal-title">SIGNATURE — 서명란 &nbsp;/&nbsp; 손가락으로 서명해 주세요</div>
+    <canvas id="sig-canvas" width="700" height="280"></canvas>
+    <div class="modal-actions">
+      <button class="btn" style="flex:1" onclick="clearCanvas()">지우기</button>
+      <button class="btn primary" style="flex:1" onclick="confirmSig()">확인</button>
+    </div>
+  </div>
+</div>
 
 <script>
-const canvas = document.getElementById('gl');
-const gl = canvas.getContext('webgl', {
-  alpha: false,
-  antialias: true,
-  preserveDrawingBuffer: true
+function pad(n){return String(n).padStart(2,'0');}
+const now=new Date();
+const y=now.getFullYear(),m=now.getMonth()+1,d=now.getDate();
+document.getElementById('startDate').value=`${y}년 ${pad(m)}월 ${pad(d)}일`;
+document.getElementById('signingDateTxt').textContent=`${y}년 ${pad(m)}월 ${pad(d)}일`;
+document.getElementById('agentName').addEventListener('input',e=>{
+  document.getElementById('sigNameDisplay').textContent=e.target.value;
 });
 
-const VS = `
-attribute vec2 a;
-void main(){
-  gl_Position = vec4(a, 0., 1.);
+// signature canvas
+const modal=document.getElementById('sigModal');
+const sigCanvas=document.getElementById('sig-canvas');
+const sctx=sigCanvas.getContext('2d');
+let drawing=false,lastX=0,lastY=0;
+
+function getPos(e,canvas){
+  const r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width,sy=canvas.height/r.height;
+  if(e.touches) return{x:(e.touches[0].clientX-r.left)*sx,y:(e.touches[0].clientY-r.top)*sy};
+  return{x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};
 }
-`;
+function startDraw(e){e.preventDefault();drawing=true;const p=getPos(e,sigCanvas);lastX=p.x;lastY=p.y;sctx.beginPath();sctx.moveTo(lastX,lastY);}
+function moveDraw(e){e.preventDefault();if(!drawing)return;const p=getPos(e,sigCanvas);sctx.lineWidth=2.6;sctx.lineCap='round';sctx.lineJoin='round';sctx.strokeStyle='#1a1a1a';sctx.lineTo(p.x,p.y);sctx.stroke();sctx.beginPath();sctx.moveTo(p.x,p.y);lastX=p.x;lastY=p.y;}
+function endDraw(){drawing=false;}
+sigCanvas.addEventListener('mousedown',startDraw);
+sigCanvas.addEventListener('mousemove',moveDraw);
+sigCanvas.addEventListener('mouseup',endDraw);
+sigCanvas.addEventListener('mouseleave',endDraw);
+sigCanvas.addEventListener('touchstart',startDraw,{passive:false});
+sigCanvas.addEventListener('touchmove',moveDraw,{passive:false});
+sigCanvas.addEventListener('touchend',endDraw);
 
-const FS = `
-precision highp float;
-uniform vec2 u_res;
-uniform float u_time;
-uniform vec2 u_c;
-uniform vec2 u_ctr;
-uniform float u_zoom;
-uniform sampler2D u_bg;
-
-vec2 cmul(vec2 a, vec2 b){
-  return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x);
+function openSigModal(){modal.classList.add('open');}
+function clearCanvas(){sctx.clearRect(0,0,sigCanvas.width,sigCanvas.height);}
+function confirmSig(){
+  const dataURL=sigCanvas.toDataURL('image/png');
+  const img=document.getElementById('sigImg');
+  img.src=dataURL;img.style.display='block';
+  document.getElementById('sigHint').style.display='none';
+  modal.classList.remove('open');
 }
-
-void main(){
-  vec2 uv = (gl_FragCoord.xy - u_res*.5) / min(u_res.x, u_res.y);
-  vec2 bg_uv = vec2(gl_FragCoord.x/u_res.x, gl_FragCoord.y/u_res.y);
-  vec3 cam = texture2D(u_bg, bg_uv).rgb;
-
-  float lum = dot(cam, vec3(0.299, 0.587, 0.114));
-  float exposure = mix(0.35, 1.7, 1.0 - lum);
-  cam *= exposure;
-  cam = pow(cam, vec3(1.3));
-  float mono = dot(cam, vec3(.333));
-  cam = mix(vec3(mono), cam, 0.08);
-
-  vec2 z = uv * u_zoom + u_ctr;
-  vec2 c = u_c + vec2(sin(u_time*.0004)*0.08, cos(u_time*.0003)*0.08);
-
-  float glow = 0.0;
-  float rings = 0.0;
-  vec2 p = z;
-  for(int i = 0; i < 220; i++){
-    p = cmul(p, p) + c;
-    float r = length(p);
-    glow += 0.006 / max(r, 0.03);
-    rings += exp(-10.0 * abs(sin(r*5.0 - u_time*.0004)));
-    if(r > 8.0) break;
-  }
-  glow = pow(glow, 1.28);
-  rings *= 0.022;
-
-  vec3 fractal = vec3(glow*2.4) + vec3(rings);
-  vec3 col = cam*0.76 + fractal*2.4;
-  col += fractal * smoothstep(0.08, 1.2, glow) * 1.8;
-  col = col / (col + vec3(.7));
-  gl_FragColor = vec4(col, 1.);
+function clearSig(){
+  clearCanvas();
+  const img=document.getElementById('sigImg');
+  img.src='';img.style.display='none';
+  document.getElementById('sigHint').style.display='block';
 }
-`;
-
-function mk(type, src){
-  const s = gl.createShader(type);
-  gl.shaderSource(s, src);
-  gl.compileShader(s);
-  return s;
-}
-
-const prog = gl.createProgram();
-gl.attachShader(prog, mk(gl.VERTEX_SHADER, VS));
-gl.attachShader(prog, mk(gl.FRAGMENT_SHADER, FS));
-gl.linkProgram(prog);
-gl.useProgram(prog);
-
-const buf = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-gl.bufferData(gl.ARRAY_BUFFER,
-  new Float32Array([-1,-1, 1,-1, -1,1, 1,1]),
-  gl.STATIC_DRAW
-);
-
-const loc = gl.getAttribLocation(prog, 'a');
-gl.enableVertexAttribArray(loc);
-gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-
-const U = {
-  res:  gl.getUniformLocation(prog, 'u_res'),
-  time: gl.getUniformLocation(prog, 'u_time'),
-  c:    gl.getUniformLocation(prog, 'u_c'),
-  ctr:  gl.getUniformLocation(prog, 'u_ctr'),
-  zoom: gl.getUniformLocation(prog, 'u_zoom'),
-  bg:   gl.getUniformLocation(prog, 'u_bg')
-};
-
-const S = {
-  zoom: 2.6,
-  ctr: { x: 0, y: 0 },
-  c:   { x: 0, y: 0 }
-};
-
-function resize(){
-  canvas.width  = innerWidth;
-  canvas.height = innerHeight;
-  gl.viewport(0, 0, canvas.width, canvas.height);
-}
-resize();
-addEventListener('resize', resize);
-
-const cam = document.getElementById('cam');
-let tex = null;
-
-// iOS Safari는 WebGL에 <video>를 직접 texImage2D로 전달하면
-// 프레임이 갱신되지 않는 버그가 있음.
-// 오프스크린 2D canvas를 중간 버퍼로 사용해 우회.
-const offscreen = document.createElement('canvas');
-const ctx2d     = offscreen.getContext('2d');
-
-async function startCamera(){
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: { ideal: 'environment' },
-      width:     { ideal: 1920 },
-      height:    { ideal: 1080 },
-      frameRate: { ideal: 30, max: 60 }
-    },
-    audio: false
-  });
-
-  cam.srcObject = stream;
-
-  await new Promise(r => { cam.onloadedmetadata = r; });
-  await cam.play();
-
-  // 오프스크린 캔버스를 실제 비디오 해상도로 맞춤
-  offscreen.width  = cam.videoWidth  || 1280;
-  offscreen.height = cam.videoHeight || 720;
-
-  tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texImage2D(
-    gl.TEXTURE_2D, 0, gl.RGBA,
-    1, 1, 0,
-    gl.RGBA, gl.UNSIGNED_BYTE,
-    new Uint8Array([0,0,0,255])
-  );
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-  setInterval(() => {
-    if(cam.paused) cam.play();
-  }, 1000);
-
-  document.getElementById('start').style.display = 'none';
-}
-
-document.getElementById('start').onclick = () => { startCamera(); };
-
-function coordsToC(lat, lng){
-  // 도보 이동(~10m) ≈ 위도 0.00009도 변화
-  // k=1500 → 0.00009 * 1500 = 0.135 라디안 → c값 ~0.05 변화 (줄리아 집합에서 확연히 다른 형태)
-  const latF = ((lat % 1) + 1) % 1;   // 소수 부분 0~1
-  const lngF = ((lng % 1) + 1) % 1;
-  const k = 1500;
-  return {
-    x: (Math.sin(latF * k)        * 0.6 + Math.cos(lngF * k * 0.73)) * 0.55,
-    y: (Math.sin(lngF * k * 1.13) * 0.6 - Math.cos(latF * k * 0.91)) * 0.55
-  };
-}
-
-let currentLat = 0;
-let currentLng = 0;
-navigator.geolocation.watchPosition(pos => {
-  currentLat = pos.coords.latitude;
-  currentLng = pos.coords.longitude;
-  S.c = coordsToC(currentLat, currentLng);
-});
-
-function updateHUD(){
-  const d = new Date();
-  document.getElementById('timeTxt').textContent =
-    'TIME: ' + d.toLocaleTimeString('en-GB', { hour12: false });
-  document.getElementById('dateTxt').textContent =
-    'DATE: ' + d.toISOString().slice(0, 10);
-  document.getElementById('latTxt').textContent =
-    'LAT: ' + currentLat.toFixed(7);
-  document.getElementById('lngTxt').textContent =
-    'LNG: ' + currentLng.toFixed(7);
-  document.getElementById('cTxt').textContent =
-    'c = ' + S.c.x.toFixed(5) + '+' + S.c.y.toFixed(5) + 'i';
-  document.getElementById('zoomTxt').textContent =
-    'ZOOM: ' + S.zoom.toFixed(2);
-}
-
-function loop(t){
-  gl.uniform2f(U.res,  canvas.width, canvas.height);
-  gl.uniform1f(U.time, t);
-  gl.uniform2f(U.c,    S.c.x,   S.c.y);
-  gl.uniform2f(U.ctr,  S.ctr.x, S.ctr.y);
-  gl.uniform1f(U.zoom, S.zoom);
-
-  if(tex && cam.readyState >= cam.HAVE_CURRENT_DATA){
-    // iOS Safari에서 <video>를 WebGL에 직접 전달하면 프레임이 갱신되지 않음.
-    // 오프스크린 2D canvas에 먼저 drawImage → canvas를 WebGL에 전달하는 방식으로 우회.
-    const vw = cam.videoWidth;
-    const vh = cam.videoHeight;
-    if(vw > 0 && vh > 0){
-      // 해상도 변경 감지 시 캔버스 크기 재설정
-      if(offscreen.width !== vw || offscreen.height !== vh){
-        offscreen.width  = vw;
-        offscreen.height = vh;
-      }
-      ctx2d.drawImage(cam, 0, 0, vw, vh);
-
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      gl.texImage2D(
-        gl.TEXTURE_2D, 0,
-        gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE,
-        offscreen
-      );
-      gl.uniform1i(U.bg, 0);
-    }
-  }
-
-  updateHUD();
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  requestAnimationFrame(loop);
-}
-
-requestAnimationFrame(loop);
-
-// ── pinch zoom ──────────────────────────────────────────────────
-let drag = false;
-let lx = 0, ly = 0;
-let pinchDist = 0, pinchZoom = 1;
-
-canvas.addEventListener('touchstart', e => {
-  if(e.touches.length === 1){
-    drag = true;
-    lx = e.touches[0].clientX;
-    ly = e.touches[0].clientY;
-  }
-  if(e.touches.length === 2){
-    pinchDist = distTouches(e.touches);
-    pinchZoom = S.zoom;
-  }
-}, { passive: true });
-
-canvas.addEventListener('touchmove', e => {
-  if(drag && e.touches.length === 1){
-    S.ctr.x -= (e.touches[0].clientX - lx) / innerHeight * S.zoom;
-    S.ctr.y += (e.touches[0].clientY - ly) / innerHeight * S.zoom;
-    lx = e.touches[0].clientX;
-    ly = e.touches[0].clientY;
-  }
-  if(e.touches.length === 2){
-    const d = distTouches(e.touches);
-    S.zoom = Math.max(0.18, Math.min(22, pinchZoom * (pinchDist / d)));
-  }
-}, { passive: true });
-
-canvas.addEventListener('touchend', () => { drag = false; });
-
-function distTouches(t){
-  const dx = t[0].clientX - t[1].clientX;
-  const dy = t[0].clientY - t[1].clientY;
-  return Math.sqrt(dx*dx + dy*dy);
-}
-
-// ── HUD를 canvas에 직접 렌더링해서 캡처에 포함 ────────────────
-function buildCaptureCanvas(){
-  const comp = document.createElement('canvas');
-  comp.width  = canvas.width;
-  comp.height = canvas.height;
-  const ctx = comp.getContext('2d');
-
-  // WebGL 결과 복사
-  ctx.drawImage(canvas, 0, 0);
-
-  // HUD 스타일
-  ctx.shadowColor = 'rgba(0,0,0,0.92)';
-  ctx.shadowBlur  = 9;
-  ctx.textBaseline = 'top';
-
-  const d = new Date();
-  const sections = [
-    { label: 'SHADOW DATA', rows: [
-      'TIME: ' + d.toLocaleTimeString('en-GB', { hour12: false }),
-      'DATE: ' + d.toISOString().slice(0, 10),
-      'LAT: '  + currentLat.toFixed(7),
-      'LNG: '  + currentLng.toFixed(7),
-    ]},
-    { label: 'FRACTAL ITERATION', rows: [
-      'c = ' + S.c.x.toFixed(5) + '+' + S.c.y.toFixed(5) + 'i',
-      'ZOOM: ' + S.zoom.toFixed(2),
-    ]},
-  ];
-
-  let y = 18;
-  const px = window.devicePixelRatio || 1;
-  // canvas 해상도는 CSS 픽셀 기준이므로 DPR 고려 없이 고정 폰트크기 사용
-  sections.forEach(sec => {
-    // 섹션 제목
-    ctx.font         = '11px monospace';
-    ctx.fillStyle    = 'rgba(255,255,255,0.42)';
-    ctx.fillText(sec.label, 18, y);
-    y += 17;
-    // 데이터 행
-    ctx.font      = '13px monospace';
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    sec.rows.forEach(row => {
-      ctx.fillText(row, 18, y);
-      y += 20;
-    });
-    y += 14; // 섹션 간격
-  });
-
-  return comp;
-}
-
-// ── capture ─────────────────────────────────────────────────────
-document.getElementById('capture').onclick = () => {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const comp = buildCaptureCanvas();
-      comp.toBlob(async blob => {
-        const filename = 'shadow-fractal-' + Date.now() + '.png';
-        const file = new File([blob], filename, { type: 'image/png' });
-
-        // ① Web Share API: iOS/Android 시스템 공유 시트 → "사진에 저장" 가능
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({ files: [file], title: 'Shadow Fractal' });
-            return;
-          } catch (e) {
-            if (e.name === 'AbortError') return;
-          }
-        }
-
-        // ② fallback: PC / share 미지원 환경
-        const url = URL.createObjectURL(blob);
-        const a   = document.createElement('a');
-        a.href     = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }, 'image/png');
-    });
-  });
-};
+modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open');});
 </script>
 </body>
 </html>
